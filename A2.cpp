@@ -2,6 +2,10 @@
 #include "stddef.h"
 #include "glut.h"
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 static GLfloat spin = 0.0;
 static GLfloat offsetX = 0;
 static GLfloat offsetY = 0;
@@ -160,7 +164,39 @@ void drawLight(Light l)
 }
 
 void init(void) {
-	cars.push_back(Car(Point(100,200), 90, 1, 0, 0, 1));
+
+	std::ifstream ifs("input.txt");
+	std::string sNumOfCars;
+
+	getline(ifs, sNumOfCars);
+	int numCars = atoi(sNumOfCars.c_str());
+
+	for (int i=0; i<numCars; i++) {
+		std::string sx, sy, srot, sk11, sk12, sk21, sk22;
+		ifs>>sx;
+		ifs>>sy;
+		ifs>>srot;
+		ifs>>sk11;
+		ifs>>sk12;
+		ifs>>sk21;
+		ifs>>sk22;
+
+		int x, y, k11, k12, k21, k22;
+		double rot;
+		
+		x = atoi(sx.c_str());
+		y = atoi(sy.c_str());
+		rot = atof(srot.c_str());
+		k11 = atoi(sk11.c_str());
+		k12 = atoi(sk12.c_str());
+		k21 = atoi(sk21.c_str());
+		k22 = atoi(sk22.c_str());
+
+		cars.push_back(Car(Point(x,y), rot, k11, k12, k21, k22));
+
+	}
+
+	//cars.push_back(Car(Point(100,200), 90, 1, 0, 0, 1));
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_FLAT);
 	glPointSize(6.0);
