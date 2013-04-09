@@ -23,7 +23,6 @@ bool drag = false;
 double field[800][600];
 struct Car;
 std::vector <Car> cars;
-double colorChange = 0.0;
 
 struct Point {
 
@@ -34,8 +33,9 @@ struct Point {
 };
 
 struct Car {
+
 	Point location;
-	int k11, k12, k21, k22;
+	double k11, k12, k21, k22;
 	double rotation;
 
 	Car();
@@ -44,25 +44,27 @@ struct Car {
 };
 
 void calculatePoint(int x, int y) {
-		for(int i=0; i<800; i++){
-			for(int j=0; j<600; j++){
-				double tempLight = sqrt((pow((x-i),2)+pow((y-j),2)));
-				if (field[i][j] < 100/tempLight){
-					field[i][j]=100/tempLight;
-				}
+
+	for(int i=0; i<800; i++){
+		for(int j=0; j<600; j++){
+			double tempLight = sqrt((pow((x-i),2)+pow((y-j),2)));
+			if (field[i][j] < 100/tempLight){
+				field[i][j]=100/tempLight;
 			}
 		}
+	}
 	field[x][y]=100;
 }
 
 void drawPoint(int x, int y) {
+
 	glColor3f (1,1,1);
 	for(int i=0; i<800; i++){
 		for(int j=0; j<600; j++){
 			if (field[i][j] == 100) {
-			glBegin(GL_POINTS);
-			glVertex2f(i,j);
-			glEnd();
+				glBegin(GL_POINTS);
+				glVertex2f(i,j);
+				glEnd();
 			}
 		}		
 	}
@@ -83,11 +85,22 @@ void drawCar(Car c) {
 	glVertex2i (17, -17);
 	glEnd();
 
-	colorChange -= 0.0002;
-	if (colorChange < 0)
-		colorChange = 1.0;
+	glColor3f (0.5, 0.5, 0.5);
+	glBegin(GL_POLYGON);
+	glVertex2i (-10, 5);
+	glVertex2i (-25, 5);
+	glVertex2i (-25, 25);
+	glVertex2i (-10, 25);
+	glEnd();
 
-	glColor3f (c.k11 + colorChange, c.k12 + colorChange, c.k21 + colorChange);
+	glBegin(GL_POLYGON);
+	glVertex2i (10, 5);
+	glVertex2i (25, 5);
+	glVertex2i (25, 25);
+	glVertex2i (10, 25);
+	glEnd();
+
+	glColor3f (c.k11, c.k12, c.k21);
 	glBegin(GL_POLYGON);
 	glVertex2i (0, -25);
 	glVertex2i (-17, 15);
@@ -97,7 +110,6 @@ void drawCar(Car c) {
 	glPopMatrix();
 }
 
-
 void init(void) {
 
 	std::ifstream ifs("input.txt");
@@ -105,24 +117,20 @@ void init(void) {
 	std::string sCarData = "";
 
 	while (ifs) {
-		getline(ifs, sNumOfCars);
-		int numOfCars = atoi(sNumOfCars.c_str());
-		for (int i = 0; i < numOfCars; i++) {
-			std::string carX, carY, carR, carK11, carK12, carK21, carK22;
+		std::string carX, carY, carR, carK11, carK12, carK21, carK22;
 
-			getline(ifs, sCarData);
-			std::stringstream carData(sCarData);
-			carData >> carX >> carY >> carR >> carK11 >> carK12 >> carK21 >> carK22;
-			std::cout << carX << carY << carR << carK11 << carK12 << carK21 << carK22;
-			cars.push_back(Car(Point(atof(carX.c_str()), atof(carY.c_str())), atoi(carR.c_str()), atoi(carK11.c_str()), atoi(carK12.c_str()), atoi(carK21.c_str()), atoi(carK22.c_str())));
-		}
+		getline(ifs, sCarData);
+		std::stringstream carData(sCarData);
+		carData >> carX >> carY >> carR >> carK11 >> carK12 >> carK21 >> carK22;
+		std::cout << carX << carY << carR << carK11 << carK12 << carK21 << carK22;
+		cars.push_back(Car(Point(atof(carX.c_str()), atof(carY.c_str())), atoi(carR.c_str()), atoi(carK11.c_str()), atoi(carK12.c_str()), atoi(carK21.c_str()), atoi(carK22.c_str())));
 	}
 
+	// Set projection parameters.
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_FLAT);
 	glPointSize(2.0);
 
-	// Set projection parameters.
 	glMatrixMode (GL_PROJECTION);
 	gluOrtho2D (0.0, 0.0, 0.0, 0.0);
 }
@@ -137,7 +145,6 @@ void polygon(void) {
 	for (int i = 0; i < cars.size(); i++ ) {
 		drawCar(cars[i]);
 	}
-	
 
 	glutSwapBuffers();
 }
@@ -147,25 +154,17 @@ void moveCar(void) {
 
 	for (int i = 0; i < cars.size(); i++ ) {
 		double w1, w2;
-		// -- drewsatmid suggestion -- 
-		//read in sensor values S1 and S2
-		//matrix multiplication [S1 S2][k11 k12 k21 k22]=[w1 w2]
 
-		// This is confirmed accurate. Exact positions of the car's sensors.
 		Point sensor1 = Point(cars[i].location.x + 25*cos(((45-cars[i].rotation)*PI)/180), cars[i].location.y + 25*sin(((45-cars[i].rotation)*PI)/180));
 		Point sensor2 = Point(cars[i].location.x + 25*cos(((-45-cars[i].rotation)*PI)/180), cars[i].location.y + 25*sin(((-45-cars[i].rotation)*PI)/180));
-		
-		// Values of the car's sensors. Confirmed accurate.
+
 		double sensorValue1 = field[(int)sensor1.x][(int)sensor1.y];
 		double sensorValue2 = field[(int)sensor2.x][(int)sensor2.y];
 
-		// Cannot confirm if accurate.
 		w1 = sensorValue1*cars[i].k11 + sensorValue2*cars[i].k12;
 		w2 = sensorValue1*cars[i].k21 + sensorValue2*cars[i].k22;
 
 		cars[i].rotation += (w2-w1);
-
-		// This is not accurate.
 		double moveX = cos(((360-cars[i].rotation)*PI)/180)*(w1+w2)/25;
 		double moveY = sin(((360-cars[i].rotation)*PI)/180)*(w1+w2)/25;
 
@@ -184,6 +183,15 @@ void moveCar(void) {
 	glutPostRedisplay();
 }
 
+void resetLights(void) {
+	for(int i=0; i<800; i++){
+		for(int j=0; j<600; j++){
+			field[i][j] = 0.0;
+		}
+	}
+	glutPostRedisplay();
+}
+
 void reshape(int w, int h) {
 
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
@@ -198,17 +206,16 @@ void mouse (int button, int state, int x, int y) {
 
 	switch(button) {
 	case GLUT_LEFT_BUTTON:
-		
-
 		if (state == GLUT_DOWN) {
 			startPosX = x;
 			startPosY = y;
 			calculatePoint(startPosX, startPosY);
 			glutIdleFunc(moveCar);
-			
 		}
-		if (state == GLUT_UP) {
-
+		break;
+	case GLUT_RIGHT_BUTTON:
+		if (state == GLUT_DOWN) {
+			glutIdleFunc(resetLights);
 		}
 		break;
 	default:
